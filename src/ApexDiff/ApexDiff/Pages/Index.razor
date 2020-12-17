@@ -1,0 +1,74 @@
+﻿@page "/"
+@inject HttpClient Http
+
+<div class="container m-5">
+    <div class="row">
+        <div class="col-sm">
+            <Select TValue="string" Multiple="false">
+
+                @foreach (var inventory in _inventories)
+                {
+                    <SelectGroup Label="@inventory.Name">
+
+                        @foreach (var gameVersion in inventory)
+                        {
+                            <SelectItem Value="@gameVersion">@inventory.Name @gameVersion</SelectItem>
+                        }
+
+                    </SelectGroup>
+                }
+
+            </Select>
+        </div>
+        <div class="col-1">
+            <Icon Name="IconName.ArrowRight" />
+        </div>
+        <div class="col-sm">
+            <Select TValue="int" />
+        </div>
+    </div>
+
+    <div>
+        <TreeView TNode="int" />
+    </div>
+</div>
+
+@code {
+    private List<GameInventoryCollection> _inventories = new List<GameInventoryCollection>();
+
+    ApexVpkInventory.VpkEntryInfo[] entries = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _inventories.Add(new GameInventoryCollection("Titanfall 2", new[]
+        {
+            "v2.0.11.0",
+        }));
+
+        _inventories.Add(new GameInventoryCollection("Apex Legends", new[]
+        {
+            "v3.0.3.105",
+        }));
+
+        var data = await Http.GetFromJsonAsync<ApexVpkInventory.VpkInventory>("sample-data/Apex Legends v3.0.3.105.json");
+
+        entries = data.Packages[0].Entries.ToArray();
+    }
+
+    public class GameInventoryCollection : List<string>
+    {
+        public GameInventoryCollection(string name, IEnumerable<string> entries) : base(entries)
+        {
+            Name = name;
+        }
+
+        public string Name { get; set; }
+    }
+
+    public class GameInventoryEntry
+    {
+        public string Version { get; private set; }
+
+        public string Url { get; private set; }
+    }
+}
