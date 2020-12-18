@@ -1,74 +1,123 @@
 ﻿@page "/"
-@inject HttpClient Http
 
-<div class="container m-5">
-    <div class="row">
-        <div class="col-sm">
-            <Select TValue="string" Multiple="false">
+@using ApexDiff.Data
+@using ApexDiff.Models
+@using Excubo.Blazor.TreeViews
+@using ApexDiff.ViewModels
+@using System.ComponentModel
 
-                @foreach (var inventory in _inventories)
+@inject AssetInventoryRepository InventoryRepository
+@inject IndexViewModel DataContext
+
+<Row Margin="Margin.Is5">
+    <Column ColumnSize="ColumnSize.IsThird">
+        <Select TValue="int"
+                @bind-SelectedValue="@ViewModel.SourceSelectedIndex"
+                Multiple="false">
+
+            @{ 
+                int inventoryIndex = 0;
+                foreach (var inventory in ViewModel.GroupedInventories)
                 {
-                    <SelectGroup Label="@inventory.Name">
+                    <SelectGroup Label="@inventory.Key" @key=inventory>
 
                         @foreach (var gameVersion in inventory)
                         {
-                            <SelectItem Value="@gameVersion">@inventory.Name @gameVersion</SelectItem>
+                            <SelectItem Value="@inventoryIndex" @key=gameVersion>@gameVersion.Game @gameVersion.Version</SelectItem>
+                            inventoryIndex++;
                         }
 
                     </SelectGroup>
                 }
+            }
+        </Select>
+    </Column>
 
-            </Select>
-        </div>
-        <div class="col-1">
-            <Icon Name="IconName.ArrowRight" />
-        </div>
-        <div class="col-sm">
-            <Select TValue="int" />
-        </div>
-    </div>
+    <Column ColumnSize="ColumnSize.Is1">
+        <Icon Name="IconName.ArrowRight" />
+    </Column>
+    <Column ColumnSize="ColumnSize.IsThird">
+        <Select TValue="AssetInventory"
+                Multiple="false">
 
-    <div>
-        <TreeView TNode="int" />
-    </div>
-</div>
+            @foreach (var inventory in ViewModel.GroupedInventories)
+            {
+                <SelectGroup Label="@inventory.Key" @key=inventory>
+
+                    @foreach (var gameVersion in inventory)
+                    {
+                        <SelectItem TValue="AssetInventory" Value="@gameVersion" @key=gameVersion>@gameVersion.Game @gameVersion.Version</SelectItem>
+                    }
+
+                </SelectGroup>
+            }
+
+        </Select>
+    </Column>
+</Row>
+
+<Row>
+    <Column ColumnSize="ColumnSize.Is10">
+        <TreeView Items="_diffTree?.Children"
+                  GetChildren="@(item => item?.Children)"
+                  InitiallyCollapsed="true">
+            <ItemTemplate>
+                <Icon Name="IconName.Folder" Margin="Margin.Is1" Style="color: red" /> @context.Item.Name
+            </ItemTemplate>
+        </TreeView>
+    </Column>
+</Row>
 
 @code {
-    private List<GameInventoryCollection> _inventories = new List<GameInventoryCollection>();
+    private AssetInventory _selectedTargetInventory = null;
 
-    ApexVpkInventory.VpkEntryInfo[] entries = null;
+    private TreeNode _diffTree = null;
+
+    private IndexViewModel ViewModel { get; set; } = null;
+
+    public Index()
+    {
+    }
 
     protected override async Task OnInitializedAsync()
     {
-        _inventories.Add(new GameInventoryCollection("Titanfall 2", new[]
-        {
-            "v2.0.11.0",
-        }));
+        ViewModel = DataContext;
+        ViewModel.PropertyChanged += OnDataContextPropertyChanged;
 
-        _inventories.Add(new GameInventoryCollection("Apex Legends", new[]
-        {
-            "v3.0.3.105",
-        }));
+        await ViewModel.InitializeAsync();
 
-        var data = await Http.GetFromJsonAsync<ApexVpkInventory.VpkInventory>("sample-data/Apex Legends v3.0.3.105.json");
-
-        entries = data.Packages[0].Entries.ToArray();
+        await RebuildDiffTreeAsync();
     }
 
-    public class GameInventoryCollection : List<string>
+    private void OnSelectedSourceInventoryChanged(AssetInventory newValue)
     {
-        public GameInventoryCollection(string name, IEnumerable<string> entries) : base(entries)
+        System.Console.WriteLine("OnSelectedSourceInventoryChanged");
+
+        _ = RebuildDiffTreeAsync();
+    }
+
+    private void OnSelectedTargetInventoryChanged(AssetInventory newValue)
+    {
+        _ = RebuildDiffTreeAsync();
+    }
+
+    private async Task RebuildDiffTreeAsync()
+    {
+        if (ViewModel.SelectedSourceInventory == null)
         {
-            Name = name;
+            return;
         }
 
-        public string Name { get; set; }
+        _diffTree = await InventoryRepository.GetInventoryFileTreeAsync(ViewModel.SelectedSourceInventory);
+
+        StateHasChanged();
     }
 
-    public class GameInventoryEntry
+    private async void OnDataContextPropertyChanged(object sender, PropertyChangedEventArgs args)
     {
-        public string Version { get; private set; }
-
-        public string Url { get; private set; }
+        if (args.PropertyName == nameof(IndexViewModel.SelectedSourceInventory))
+        {
+            await RebuildDiffTreeAsync();
+        }
     }
 }
