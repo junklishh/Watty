@@ -11,7 +11,8 @@ namespace ApexDiff.ViewModels
     public class IndexViewModel : INotifyPropertyChanged
     {
         private IReadOnlyList<AssetInventory> _inventories = new List<AssetInventory>();
-        private int _sourceSelectedIndex = -1;
+        private int _sourceSelectedIndex = 1;
+        private int _targetSelectedIndex = 0;
 
         private AssetInventoryRepository InventoryRepository { get; } = null;
 
@@ -45,6 +46,33 @@ namespace ApexDiff.ViewModels
                     _sourceSelectedIndex = value;
                     RaisePropertyChanged();
                     RaisePropertyChanged(nameof(SelectedSourceInventory));
+                }
+            }
+        }
+
+        public AssetInventory SelectedTargetInventory
+        {
+            get
+            {
+                if (TargetSelectedIndex < 0 || TargetSelectedIndex >= _inventories.Count)
+                {
+                    return null;
+                }
+
+                return _inventories[TargetSelectedIndex];
+            }
+        }
+
+        public int TargetSelectedIndex
+        {
+            get => _targetSelectedIndex;
+            set
+            {
+                if (_targetSelectedIndex != value)
+                {
+                    _targetSelectedIndex = value;
+                    RaisePropertyChanged();
+                    RaisePropertyChanged(nameof(SelectedTargetInventory));
                 }
             }
         }

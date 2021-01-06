@@ -58,20 +58,19 @@
 
 <Row>
     <Column ColumnSize="ColumnSize.Is10">
-        <TreeView Items="_diffTree?.Children"
-                  GetChildren="@(item => item?.Children)"
+        <TreeView T="ITreeNode"
+                  Items="_diffTree?.Children"
+                  GetChildren="@(item => (item as DirectoryTreeNode)?.Children)"
                   InitiallyCollapsed="true">
             <ItemTemplate>
-                <Icon Name="IconName.Folder" Margin="Margin.Is1" Style="color: red" /> @context.Item.Name
+                <Icon Name="@TreeNodeToIconName(context.Item)" Margin="Margin.Is2" Style="@TreeNodeToIconStyle(context.Item)" /> @context.Item.Name
             </ItemTemplate>
         </TreeView>
     </Column>
 </Row>
 
 @code {
-    private AssetInventory _selectedTargetInventory = null;
-
-    private TreeNode _diffTree = null;
+    private DirectoryTreeNode _diffTree = null;
 
     private IndexViewModel ViewModel { get; set; } = null;
 
@@ -108,7 +107,10 @@
             return;
         }
 
-        _diffTree = await InventoryRepository.GetInventoryFileTreeAsync(ViewModel.SelectedSourceInventory);
+        var sourceTree = await InventoryRepository.GetInventoryFileTreeAsync(ViewModel.SelectedSourceInventory);
+        var targetTree = await InventoryRepository.GetInventoryFileTreeAsync(ViewModel.SelectedTargetInventory);
+        _diffTree = await InventoryRepository.CalculateFileTreeDiffAsync(sourceTree, targetTree);
+        Console.WriteLine(_diffTree.Children.Count);
 
         StateHasChanged();
     }
@@ -119,5 +121,35 @@
         {
             await RebuildDiffTreeAsync();
         }
+    }
+
+    private IconName TreeNodeToIconName(ITreeNode treeNode)
+    {
+        if (treeNode is DirectoryTreeNode)
+        {
+            return IconName.Folder;
+        }
+
+        return IconName.FileAlt;
+    }
+
+    private string TreeNodeToIconStyle(ITreeNode treeNode)
+    {
+        var iconStyle = "color: black";
+
+        switch (treeNode.DiffState)
+        {
+            case DiffState.Added:
+                iconStyle = "color: green";
+                break;
+            case DiffState.Modified:
+                iconStyle = "color: yellow";
+                break;
+            case DiffState.Deleted:
+                iconStyle = "color: red";
+                break;
+        }
+
+        return iconStyle;
     }
 }
