@@ -24,9 +24,10 @@ namespace ApexDiff.Data
         {
             return new List<AssetInventory>()
             {
+                new AssetInventory("Apex Legends", "v3.0.3.105", "inventories/Apex Legends v3.0.5.171.json"),
                 new AssetInventory("Apex Legends", "v3.0.4.111", "inventories/Apex Legends v3.0.4.111.json"),
                 new AssetInventory("Apex Legends", "v3.0.3.105", "inventories/Apex Legends v3.0.3.105.json"),
-                new AssetInventory("Titanfall 2", "v2.0.11.0", "inventories/Titanfall 2 v2.0.11.0.json"),
+                // new AssetInventory("Titanfall 2", "v2.0.11.0", "inventories/Titanfall 2 v2.0.11.0.json"),
             };
         }
 
